@@ -10,6 +10,8 @@ import Dashboard from './pages/Dashboard';
 import Tickets from './pages/Tickets';
 import TicketDetail from './pages/TicketDetail';
 import Agents from './pages/Agents';
+import AgentDetail from './pages/AgentDetail';
+import CreateAgent from './pages/CreateAgent';
 
 function App() {
   return (
@@ -37,6 +39,22 @@ function App() {
               element={
                 <ProtectedRoute adminOnly={true}>
                   <Agents />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/agents/new"
+              element={
+                <ProtectedRoute adminOnly={true}>
+                  <CreateAgent />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/agents/:id"
+              element={
+                <ProtectedRoute adminOnly={true}>
+                  <AgentDetail />
                 </ProtectedRoute>
               }
             />

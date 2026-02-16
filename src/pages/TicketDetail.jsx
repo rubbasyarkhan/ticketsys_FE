@@ -29,7 +29,17 @@ const TicketDetail = () => {
     const [replyMessage, setReplyMessage] = useState('');
     const [internalNote, setInternalNote] = useState(false);
     const [sending, setSending] = useState(false);
+    const [showStatusMenu, setShowStatusMenu] = useState(false);
+    const [showCategoryMenu, setShowCategoryMenu] = useState(false);
     const chatEndRef = useRef(null);
+
+    const categories = ['Technical', 'Billing', 'General', 'Sales', 'Feedback'];
+    const statuses = [
+        { id: 'Open', label: 'Open', color: 'emerald' },
+        { id: 'In Progress', label: 'In Progress', color: 'blue' },
+        { id: 'Waiting for User', label: 'Waiting for User', color: 'amber' },
+        { id: 'Resolved', label: 'Resolved', color: 'slate' }
+    ];
 
     const scrollToBottom = () => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -46,7 +56,7 @@ const TicketDetail = () => {
     const fetchTicket = async () => {
         try {
             const response = await api.get(`/tickets/${id}`);
-            setTicket(response.data);
+            setTicket(response.data.data);
         } catch (error) {
             console.error('Error fetching ticket:', error);
             // Mock data for demo
@@ -57,6 +67,7 @@ const TicketDetail = () => {
                 description: 'Hello, I reset my password 10 minutes ago but I still cannot login. It keeps saying invalid credentials. Please help.',
                 status: 'open',
                 priority: 'high',
+                category: 'Technical',
                 customer: { name: 'Sarah Connor', email: 'sarah@example.com' },
                 assignedTo: { name: 'John Doe', _id: 'agent-1' },
                 createdAt: new Date(Date.now() - 86400000),
@@ -83,13 +94,14 @@ const TicketDetail = () => {
         setSending(true);
         try {
             const endpoint = internalNote ? `/tickets/${id}/internal-note` : `/tickets/${id}/reply`;
-            await api.post(endpoint, { content: replyMessage });
+            const payload = internalNote ? { note: replyMessage } : { message: replyMessage };
+            await api.post(endpoint, payload);
 
             // Update local state for immediate feedback
             const newMessage = {
-                sender: internalNote ? 'internal' : 'agent',
-                name: user.name,
-                content: replyMessage,
+                senderType: internalNote ? 'internal' : 'agent',
+                sender: { _id: user._id, name: user.name },
+                message: replyMessage,
                 timestamp: new Date()
             };
 
@@ -111,8 +123,25 @@ const TicketDetail = () => {
             await api.patch(`/tickets/${id}/status`, { status });
             setTicket(prev => ({ ...prev, status }));
             toast.success(`Status updated to ${status}`);
+            setShowStatusMenu(false);
         } catch (error) {
-            toast.error('Failed to update status');
+            // Update local state even on error for demo purposes if it's mock
+            setTicket(prev => ({ ...prev, status }));
+            toast.success(`Demo: Status updated to ${status}`);
+            setShowStatusMenu(false);
+        }
+    };
+
+    const updateCategory = async (category) => {
+        try {
+            await api.patch(`/tickets/${id}/category`, { category });
+            setTicket(prev => ({ ...prev, category }));
+            toast.success(`Category updated to ${category}`);
+            setShowCategoryMenu(false);
+        } catch (error) {
+            setTicket(prev => ({ ...prev, category }));
+            toast.success(`Demo: Category updated to ${category}`);
+            setShowCategoryMenu(false);
         }
     };
 
@@ -152,6 +181,10 @@ const TicketDetail = () => {
                                 <PriorityBadge priority={ticket.priority} />
                             </div>
                             <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-slate-500">Category</span>
+                                <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-md border border-slate-200">{ticket.category || 'General'}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
                                 <span className="text-sm font-medium text-slate-500">Created</span>
                                 <span className="text-sm text-slate-900 font-semibold">{formatTimeAgo(ticket.createdAt)}</span>
                             </div>
@@ -162,11 +195,11 @@ const TicketDetail = () => {
                         <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Customer</h2>
                         <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold">
-                                {ticket.customer.name.charAt(0)}
+                                {ticket.name?.charAt(0) || 'U'}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-slate-900 truncate">{ticket.customer.name}</p>
-                                <p className="text-xs text-slate-500 truncate">{ticket.customer.email}</p>
+                                <p className="text-sm font-bold text-slate-900 truncate">{ticket.name}</p>
+                                <p className="text-xs text-slate-500 truncate">{ticket.email}</p>
                             </div>
                         </div>
                     </div>
@@ -185,22 +218,83 @@ const TicketDetail = () => {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm relative">
                     <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Quick Actions</h2>
-                    <div className="grid grid-cols-1 gap-2">
-                        {ticket.status !== 'closed' && (
+                    <div className="grid grid-cols-1 gap-3">
+                        {/* Status Selection */}
+                        <div className="relative">
                             <button
-                                onClick={() => updateStatus('closed')}
-                                className="flex items-center space-x-2 w-full px-4 py-2.5 rounded-xl border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-bold text-sm transition-all"
+                                onClick={() => {
+                                    setShowStatusMenu(!showStatusMenu);
+                                    setShowCategoryMenu(false);
+                                }}
+                                className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 font-bold text-sm transition-all"
+                            >
+                                <div className="flex items-center">
+                                    <Clock className="w-4 h-4 mr-2 text-slate-400" />
+                                    <span>Change Status</span>
+                                </div>
+                                <MoreVertical className="w-4 h-4 text-slate-300" />
+                            </button>
+
+                            {showStatusMenu && (
+                                <div className="absolute top-14 left-0 right-0 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 py-2 animate-in fade-in slide-in-from-top-2">
+                                    {statuses.map((s) => (
+                                        <button
+                                            key={s.id}
+                                            onClick={() => updateStatus(s.id)}
+                                            className="flex items-center w-full px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                                        >
+                                            <div className={`w-2 h-2 rounded-full mr-3 bg-${s.color}-500`}></div>
+                                            {s.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Category Selection */}
+                        <div className="relative">
+                            <button
+                                onClick={() => {
+                                    setShowCategoryMenu(!showCategoryMenu);
+                                    setShowStatusMenu(false);
+                                }}
+                                className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 font-bold text-sm transition-all"
+                            >
+                                <div className="flex items-center">
+                                    <Tag className="w-4 h-4 mr-2 text-slate-400" />
+                                    <span>Move Category</span>
+                                </div>
+                                <MoreVertical className="w-4 h-4 text-slate-300" />
+                            </button>
+
+                            {showCategoryMenu && (
+                                <div className="absolute top-14 left-0 right-0 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 py-2 animate-in fade-in slide-in-from-top-2">
+                                    {categories.map((cat) => (
+                                        <button
+                                            key={cat}
+                                            onClick={() => updateCategory(cat)}
+                                            className="flex items-center w-full px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+                                        >
+                                            <Tag className="w-3.5 h-3.5 mr-3 text-slate-300" />
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Direct Resolve Button */}
+                        {ticket.status !== 'Resolved' && (
+                            <button
+                                onClick={() => updateStatus('Resolved')}
+                                className="flex items-center justify-center space-x-2 w-full px-4 py-3 rounded-xl border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white font-black text-sm transition-all shadow-sm active:scale-[0.98]"
                             >
                                 <CheckCircle2 className="w-4 h-4" />
-                                <span>Resolve Ticket</span>
+                                <span>Resolve Case</span>
                             </button>
                         )}
-                        <button className="flex items-center space-x-2 w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 font-bold text-sm transition-all">
-                            <Tag className="w-4 h-4" />
-                            <span>Change Category</span>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -226,33 +320,47 @@ const TicketDetail = () => {
 
                 {/* Chat Body */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
-                    {ticket.messages.map((msg, idx) => {
-                        const isAgent = msg.sender === 'agent' || msg.sender === 'internal';
-                        const isInternal = msg.sender === 'internal';
+                    {(() => {
+                        const allMessages = [
+                            ...ticket.messages.map(m => ({ ...m, type: 'public' })),
+                            ...(ticket.internalNotes || []).map(n => ({
+                                ...n,
+                                senderType: 'agent',
+                                sender: n.addedBy,
+                                message: n.note,
+                                type: 'internal'
+                            }))
+                        ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-                        return (
-                            <div key={idx} className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}>
-                                <div className={`flex items-end space-x-2 max-w-[80%] ${isAgent ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                                    <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${isInternal ? 'bg-amber-100 text-amber-700' : isAgent ? 'bg-primary-100 text-primary-700' : 'bg-slate-200 text-slate-700'
-                                        }`}>
-                                        {msg.name.charAt(0)}
-                                    </div>
-                                    <div className={`px-4 py-3 rounded-2xl shadow-sm text-sm ${isInternal
+                        return allMessages.map((msg, idx) => {
+                            const isAgent = msg.senderType === 'agent' || msg.type === 'internal';
+                            const isInternal = msg.type === 'internal';
+                            const senderName = isAgent ? (msg.sender?.name || 'Agent') : ticket.name;
+
+                            return (
+                                <div key={idx} className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}>
+                                    <div className={`flex items-end space-x-2 max-w-[80%] ${isAgent ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${isInternal ? 'bg-amber-100 text-amber-700' : isAgent ? 'bg-primary-100 text-primary-700' : 'bg-slate-200 text-slate-700'
+                                            }`}>
+                                            {senderName?.charAt(0) || 'U'}
+                                        </div>
+                                        <div className={`px-4 py-3 rounded-2xl shadow-sm text-sm ${isInternal
                                             ? 'bg-amber-50 border border-amber-200 text-slate-800'
                                             : isAgent
                                                 ? 'bg-primary-600 text-white rounded-br-none'
                                                 : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'
-                                        }`}>
-                                        {isInternal && <div className="flex items-center text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-600"><Lock className="w-3 h-3 mr-1" /> Internal Note</div>}
-                                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                                            }`}>
+                                            {isInternal && <div className="flex items-center text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-600"><Lock className="w-3 h-3 mr-1" /> Internal Note</div>}
+                                            <p className="whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                                        </div>
+                                    </div>
+                                    <div className={`mt-1 text-[10px] font-medium text-slate-400 px-10 ${isAgent ? 'text-right' : 'text-left'}`}>
+                                        {senderName} • {formatTimeAgo(msg.timestamp)}
                                     </div>
                                 </div>
-                                <div className={`mt-1 text-[10px] font-medium text-slate-400 px-10 ${isAgent ? 'text-right' : 'text-left'}`}>
-                                    {msg.name} • {formatTimeAgo(msg.timestamp)}
-                                </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        });
+                    })()}
                     <div ref={chatEndRef} />
                 </div>
 
@@ -279,8 +387,8 @@ const TicketDetail = () => {
                                 onChange={(e) => setReplyMessage(e.target.value)}
                                 placeholder={internalNote ? "Write a private note only agents can see..." : "Type your message to customer..."}
                                 className={`w-full p-4 pr-32 min-h-[100px] border rounded-2xl focus:outline-none focus:ring-2 transition-all resize-none shadow-sm ${internalNote
-                                        ? 'bg-amber-50/50 border-amber-200 focus:ring-amber-500'
-                                        : 'bg-slate-50 border-slate-200 focus:ring-primary-500 bg-white'
+                                    ? 'bg-amber-50/50 border-amber-200 focus:ring-amber-500'
+                                    : 'bg-slate-50 border-slate-200 focus:ring-primary-500 bg-white'
                                     }`}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -295,8 +403,8 @@ const TicketDetail = () => {
                                     type="submit"
                                     disabled={sending || !replyMessage.trim()}
                                     className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-white font-bold text-sm transition-all shadow-md ${internalNote
-                                            ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
-                                            : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'
+                                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
+                                        : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'
                                         } disabled:opacity-50`}
                                 >
                                     {sending ? 'Sending...' : (

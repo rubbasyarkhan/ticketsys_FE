@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, User, CheckCircle2, Clock, TrendingUp, Search } from 'lucide-react';
 import api from '../api/axios';
 
@@ -6,12 +7,13 @@ const Agents = () => {
     const [agents, setAgents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchAgents = async () => {
             try {
                 const response = await api.get('/admin/agent-stats');
-                setAgents(response.data.agents || []);
+                setAgents(response.data.data || []);
             } catch (error) {
                 console.error('Error fetching agents:', error);
                 // Mock data
@@ -40,15 +42,24 @@ const Agents = () => {
                     <h1 className="text-2xl font-bold text-slate-900">Agent Performance</h1>
                     <p className="text-slate-500 text-sm mt-1">Monitor and manage your support team efficiency.</p>
                 </div>
-                <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <input
-                        type="text"
-                        placeholder="Search agents..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all shadow-sm"
-                    />
+                <div className="flex items-center space-x-4">
+                    <button
+                        onClick={() => navigate('/admin/agents/new')}
+                        className="flex items-center space-x-2 px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary-100"
+                    >
+                        <Users className="w-4 h-4" />
+                        <span>Add New Agent</span>
+                    </button>
+                    <div className="relative w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                        <input
+                            type="text"
+                            placeholder="Search agents..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all shadow-sm"
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -101,13 +112,21 @@ const Agents = () => {
                                 ))
                             ) : (
                                 filteredAgents.map((agent) => {
-                                    const efficiency = Math.round((agent.ticketsClosed / agent.ticketsAssigned) * 100) || 0;
+                                    const efficiency = Math.round((agent.ticketsClosedCount / agent.assignedTicketsCount) * 100) || 0;
                                     return (
-                                        <tr key={agent._id} className="hover:bg-slate-50/50 transition-colors">
+                                        <tr
+                                            key={agent._id}
+                                            className="hover:bg-slate-50 transition-colors cursor-pointer group"
+                                            onClick={() => navigate(`/admin/agents/${agent._id}`)}
+                                        >
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center space-x-3">
-                                                    <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center font-bold border border-primary-100">
-                                                        {agent.name.charAt(0)}
+                                                    <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center font-bold border border-primary-100 overflow-hidden">
+                                                        {agent.avatar ? (
+                                                            <img src={agent.avatar} alt={agent.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            agent.name.charAt(0)
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-bold text-slate-900">{agent.name}</p>
@@ -116,10 +135,10 @@ const Agents = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <span className="text-sm font-semibold text-slate-700">{agent.ticketsAssigned}</span>
+                                                <span className="text-sm font-semibold text-slate-700">{agent.assignedTicketsCount}</span>
                                             </td>
                                             <td className="px-6 py-4 text-center text-emerald-600 font-bold">
-                                                {agent.ticketsClosed}
+                                                {agent.ticketsClosedCount}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex items-center justify-center space-x-1 text-slate-600">
