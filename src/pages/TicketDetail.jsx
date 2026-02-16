@@ -83,13 +83,14 @@ const TicketDetail = () => {
         setSending(true);
         try {
             const endpoint = internalNote ? `/tickets/${id}/internal-note` : `/tickets/${id}/reply`;
-            await api.post(endpoint, { content: replyMessage });
+            const payload = internalNote ? { note: replyMessage } : { message: replyMessage };
+            await api.post(endpoint, payload);
 
             // Update local state for immediate feedback
             const newMessage = {
-                sender: internalNote ? 'internal' : 'agent',
-                name: user.name,
-                content: replyMessage,
+                senderType: internalNote ? 'internal' : 'agent',
+                sender: { _id: user._id, name: user.name },
+                message: replyMessage,
                 timestamp: new Date()
             };
 
@@ -162,11 +163,11 @@ const TicketDetail = () => {
                         <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Customer</h2>
                         <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold">
-                                {ticket.customer.name.charAt(0)}
+                                {ticket.name?.charAt(0) || 'U'}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-slate-900 truncate">{ticket.customer.name}</p>
-                                <p className="text-xs text-slate-500 truncate">{ticket.customer.email}</p>
+                                <p className="text-sm font-bold text-slate-900 truncate">{ticket.name}</p>
+                                <p className="text-xs text-slate-500 truncate">{ticket.email}</p>
                             </div>
                         </div>
                     </div>
@@ -226,33 +227,47 @@ const TicketDetail = () => {
 
                 {/* Chat Body */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
-                    {ticket.messages.map((msg, idx) => {
-                        const isAgent = msg.sender === 'agent' || msg.sender === 'internal';
-                        const isInternal = msg.sender === 'internal';
+                    {(() => {
+                        const allMessages = [
+                            ...ticket.messages.map(m => ({ ...m, type: 'public' })),
+                            ...(ticket.internalNotes || []).map(n => ({
+                                ...n,
+                                senderType: 'agent',
+                                sender: n.addedBy,
+                                message: n.note,
+                                type: 'internal'
+                            }))
+                        ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-                        return (
-                            <div key={idx} className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}>
-                                <div className={`flex items-end space-x-2 max-w-[80%] ${isAgent ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                                    <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${isInternal ? 'bg-amber-100 text-amber-700' : isAgent ? 'bg-primary-100 text-primary-700' : 'bg-slate-200 text-slate-700'
-                                        }`}>
-                                        {msg.name.charAt(0)}
+                        return allMessages.map((msg, idx) => {
+                            const isAgent = msg.senderType === 'agent' || msg.type === 'internal';
+                            const isInternal = msg.type === 'internal';
+                            const senderName = isAgent ? (msg.sender?.name || 'Agent') : ticket.name;
+
+                            return (
+                                <div key={idx} className={`flex flex-col ${isAgent ? 'items-end' : 'items-start'}`}>
+                                    <div className={`flex items-end space-x-2 max-w-[80%] ${isAgent ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                                        <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${isInternal ? 'bg-amber-100 text-amber-700' : isAgent ? 'bg-primary-100 text-primary-700' : 'bg-slate-200 text-slate-700'
+                                            }`}>
+                                            {senderName?.charAt(0) || 'U'}
+                                        </div>
+                                        <div className={`px-4 py-3 rounded-2xl shadow-sm text-sm ${isInternal
+                                            ? 'bg-amber-50 border border-amber-200 text-slate-800'
+                                            : isAgent
+                                                ? 'bg-primary-600 text-white rounded-br-none'
+                                                : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'
+                                            }`}>
+                                            {isInternal && <div className="flex items-center text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-600"><Lock className="w-3 h-3 mr-1" /> Internal Note</div>}
+                                            <p className="whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                                        </div>
                                     </div>
-                                    <div className={`px-4 py-3 rounded-2xl shadow-sm text-sm ${isInternal
-                                        ? 'bg-amber-50 border border-amber-200 text-slate-800'
-                                        : isAgent
-                                            ? 'bg-primary-600 text-white rounded-br-none'
-                                            : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'
-                                        }`}>
-                                        {isInternal && <div className="flex items-center text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-600"><Lock className="w-3 h-3 mr-1" /> Internal Note</div>}
-                                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                                    <div className={`mt-1 text-[10px] font-medium text-slate-400 px-10 ${isAgent ? 'text-right' : 'text-left'}`}>
+                                        {senderName} • {formatTimeAgo(msg.timestamp)}
                                     </div>
                                 </div>
-                                <div className={`mt-1 text-[10px] font-medium text-slate-400 px-10 ${isAgent ? 'text-right' : 'text-left'}`}>
-                                    {msg.name} • {formatTimeAgo(msg.timestamp)}
-                                </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        });
+                    })()}
                     <div ref={chatEndRef} />
                 </div>
 
