@@ -34,9 +34,9 @@ const Tickets = () => {
                 console.error('Error fetching tickets:', error);
                 // Mock data for demo if API fails
                 setTickets([
-                    { _id: '1', ticketId: 'TIC-1021', subject: 'Server Connection Error', email: 'user@example.com', priority: 'high', status: 'open', assignedTo: { name: 'John Doe' }, createdAt: new Date() },
-                    { _id: '2', ticketId: 'TIC-1022', subject: 'Password Reset Request', email: 'jane@test.com', priority: 'medium', status: 'in-progress', assignedTo: { name: 'Alice Smith' }, createdAt: new Date() },
-                    { _id: '3', ticketId: 'TIC-1023', subject: 'New Feature Suggestion', email: 'bob@corp.com', priority: 'low', status: 'closed', assignedTo: { name: 'John Doe' }, createdAt: new Date() },
+                    { _id: '1', ticketId: 'TIC-1021', subject: 'Server Connection Error', email: 'user@example.com', priority: 'high', status: 'Open', assignedTo: { name: 'John Doe' }, createdAt: new Date() },
+                    { _id: '2', ticketId: 'TIC-1022', subject: 'Password Reset Request', email: 'jane@test.com', priority: 'medium', status: 'In Progress', assignedTo: { name: 'Alice Smith' }, createdAt: new Date() },
+                    { _id: '3', ticketId: 'TIC-1023', subject: 'New Feature Suggestion', email: 'bob@corp.com', priority: 'low', status: 'Resolved', assignedTo: { name: 'John Doe' }, createdAt: new Date() },
                 ]);
             } finally {
                 setLoading(false);
@@ -101,10 +101,10 @@ const Tickets = () => {
                                 className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:outline-none"
                             >
                                 <option value="">All Statuses</option>
-                                <option value="open">Open</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="closed">Closed</option>
-                                <option value="pending">Pending</option>
+                                <option value="Open">Open</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Waiting for User">Waiting for User</option>
+                                <option value="Resolved">Resolved</option>
                             </select>
                         </div>
                         <div>
