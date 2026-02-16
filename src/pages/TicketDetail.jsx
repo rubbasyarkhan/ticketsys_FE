@@ -46,7 +46,7 @@ const TicketDetail = () => {
     const fetchTicket = async () => {
         try {
             const response = await api.get(`/tickets/${id}`);
-            setTicket(response.data);
+            setTicket(response.data.data);
         } catch (error) {
             console.error('Error fetching ticket:', error);
             // Mock data for demo
@@ -238,10 +238,10 @@ const TicketDetail = () => {
                                         {msg.name.charAt(0)}
                                     </div>
                                     <div className={`px-4 py-3 rounded-2xl shadow-sm text-sm ${isInternal
-                                            ? 'bg-amber-50 border border-amber-200 text-slate-800'
-                                            : isAgent
-                                                ? 'bg-primary-600 text-white rounded-br-none'
-                                                : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'
+                                        ? 'bg-amber-50 border border-amber-200 text-slate-800'
+                                        : isAgent
+                                            ? 'bg-primary-600 text-white rounded-br-none'
+                                            : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none'
                                         }`}>
                                         {isInternal && <div className="flex items-center text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-600"><Lock className="w-3 h-3 mr-1" /> Internal Note</div>}
                                         <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
@@ -279,8 +279,8 @@ const TicketDetail = () => {
                                 onChange={(e) => setReplyMessage(e.target.value)}
                                 placeholder={internalNote ? "Write a private note only agents can see..." : "Type your message to customer..."}
                                 className={`w-full p-4 pr-32 min-h-[100px] border rounded-2xl focus:outline-none focus:ring-2 transition-all resize-none shadow-sm ${internalNote
-                                        ? 'bg-amber-50/50 border-amber-200 focus:ring-amber-500'
-                                        : 'bg-slate-50 border-slate-200 focus:ring-primary-500 bg-white'
+                                    ? 'bg-amber-50/50 border-amber-200 focus:ring-amber-500'
+                                    : 'bg-slate-50 border-slate-200 focus:ring-primary-500 bg-white'
                                     }`}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -295,8 +295,8 @@ const TicketDetail = () => {
                                     type="submit"
                                     disabled={sending || !replyMessage.trim()}
                                     className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-white font-bold text-sm transition-all shadow-md ${internalNote
-                                            ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
-                                            : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'
+                                        ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
+                                        : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'
                                         } disabled:opacity-50`}
                                 >
                                     {sending ? 'Sending...' : (

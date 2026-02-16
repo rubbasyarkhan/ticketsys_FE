@@ -11,7 +11,7 @@ const Agents = () => {
         const fetchAgents = async () => {
             try {
                 const response = await api.get('/admin/agent-stats');
-                setAgents(response.data.agents || []);
+                setAgents(response.data.data || []);
             } catch (error) {
                 console.error('Error fetching agents:', error);
                 // Mock data
@@ -101,7 +101,7 @@ const Agents = () => {
                                 ))
                             ) : (
                                 filteredAgents.map((agent) => {
-                                    const efficiency = Math.round((agent.ticketsClosed / agent.ticketsAssigned) * 100) || 0;
+                                    const efficiency = Math.round((agent.ticketsClosedCount / agent.assignedTicketsCount) * 100) || 0;
                                     return (
                                         <tr key={agent._id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-6 py-4">
@@ -116,10 +116,10 @@ const Agents = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <span className="text-sm font-semibold text-slate-700">{agent.ticketsAssigned}</span>
+                                                <span className="text-sm font-semibold text-slate-700">{agent.assignedTicketsCount}</span>
                                             </td>
                                             <td className="px-6 py-4 text-center text-emerald-600 font-bold">
-                                                {agent.ticketsClosed}
+                                                {agent.ticketsClosedCount}
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex items-center justify-center space-x-1 text-slate-600">

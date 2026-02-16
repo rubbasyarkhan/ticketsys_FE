@@ -20,7 +20,7 @@ const Dashboard = () => {
             try {
                 // Try to get admin stats if available, fallback to general ticket counts
                 const response = await api.get('/admin/agent-stats');
-                setStats(response.data);
+                setStats(response.data.data);
             } catch (error) {
                 // Fallback or mock data if endpoint not ready
                 setStats({

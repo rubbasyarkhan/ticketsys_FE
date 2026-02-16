@@ -28,8 +28,8 @@ const Tickets = () => {
                     ...filters
                 });
                 const response = await api.get(`/tickets?${queryParams.toString()}`);
-                setTickets(response.data.tickets || response.data);
-                setTotalPages(response.data.totalPages || 1);
+                setTickets(response.data.data.tickets);
+                setTotalPages(response.data.data.pagination.pages);
             } catch (error) {
                 console.error('Error fetching tickets:', error);
                 // Mock data for demo if API fails
